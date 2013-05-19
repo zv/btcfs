@@ -3,8 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/conformal/btcwire"
-	"code.google.com/p/leveldb-go/leveldb/memdb"
-	"code.google.com/p/leveldb-go/leveldb/db"
+	"code.google.com/p/gocask"
 	"log"
 	"bytes"
 	"encoding/gob"
@@ -12,13 +11,14 @@ import (
 
 var (
 	conf = Config{"btcfs", 0}
-
-	headerdb db.DB
+	db, _ = gocask.NewGocask(".")
+	getheaders = btcwire.NewMsgGetHeaders()
+	blockchain = InitializeBlockChain()  
 )
 
 func init() {
 	gob.Register(btcwire.BlockHeader{})
-	headerdb = memdb.New(nil)
+	getheaders.AddBlockLocatorHash(&btcwire.GenesisMerkleRoot)
 }
 
 func main() {
@@ -39,14 +39,20 @@ func main() {
 	}
 
 	//headerschan := make(chan btcwire.BlockHeader, 20)
-
-	getheaders := btcwire.NewMsgGetHeaders()
-	getheaders.AddBlockLocatorHash(&btcwire.GenesisMerkleRoot)
+	
 
 	peer.Write(getheaders)
 
 	ProcessMessages(peer)
 
+	/*
+	iter := reader.Find(nil, nil)
+	"code.google.com/p/leveldb-go/leveldb/table"
+	for iter.Next() {
+		fmt.Printf("nonce: %q, val: %q\n", iter.Key(), iter.Value())
+	} 
+	iter.Close()
+	*/
 }
 
 func ProcessMessages(n *BTCPeer) error {
@@ -63,29 +69,64 @@ func ProcessMessages(n *BTCPeer) error {
 
 func ProcessMessage(from *BTCPeer, msg string, data btcwire.Message) {
 	//log.Printf("ProcessMessage: %s %#v", msg, data)
+	defer db.Close()
 
 	switch msg {
 		case "headers":
 			hdrs := data.(*btcwire.MsgHeaders)
-
 			log.Printf("Received %d headers", len(hdrs.Headers))
 
+			for _, h := range hdrs.Headers {
+				_, err := blockchain.AddBlock(h)
+				if err != nil {
+					log.Print(err)
+				}
+			}
+			
+			locator := blockchain.CreateLocator()	
+			log.Printf("locator: %#v", locator)
+			getheaders := btcwire.NewMsgGetHeaders()
+			for _, l := locator {	 
+				getheaders.AddBlockLocatorHash(l)	
+			}
+			from.Write(getheaders)
+			
+			/*
+			roots := make([]btcwire.ShaHash)	
+		
 			for _, h := range hdrs.Headers {
 				buf := bytes.Buffer{}
 				enc := gob.NewEncoder(&buf)
 				enc.Encode(*h)
 				val := buf.Bytes()
-				buf.Reset()
-				enc.Encode(h.MerkleRoot)
-				key := buf.Bytes()
-				buf.Reset()
-				headerdb.Set(key, val, nil)
+				//buf.Reset()
+				//enc.Encode(h.Nonce)
+				//key := buf.Bytes()
+				//buf.Reset()
+				db.Put(h.MerkleRoot.String(), val)
+				getheaders.AddBlockLocatorHash(&h.MerkleRoot)
 			}
 
-			last := hdrs.Headers[len(hdrs.Headers)-1]
-			getheaders := btcwire.NewMsgGetHeaders()
-			getheaders.AddBlockLocatorHash(&last.MerkleRoot)
+			last_headers := hdrs.Headers[len(hdrs.Headers)-11:len(hdrs.Headers)-1]
+			//last := hdrs.Headers[0]
+			//getheaders := btcwire.NewMsgGetHeaders()
+			fmt.Printf("%s\n", last_headers[0].MerkleRoot.String())
+			for _, header := range last_headers{ 
+				getheaders.AddBlockLocatorHash(&header.MerkleRoot)
+				//fmt.Printf("hash %d: %s\n", i, header.MerkleRoot.String())
+			}
+			//fmt.Printf("%#v", getheaders)
 			from.Write(getheaders)
+			/*
+			buf := bytes.Buffer{}
+			enc := gob.NewEncoder(&buf)
+			enc.Encode(&last.Nonce)
+			nonce := buf.Bytes()	
+			db.Put(string("Hello"), []byte("World"))
+			test, _ := db.Get(string("Hello"))
+			fmt.Printf("%s\n", test)
+			fmt.Printf("%d Records in the DB\n", n)
+			*/
 			
 		default:
 	}
