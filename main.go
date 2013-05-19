@@ -1,8 +1,6 @@
 package main
 
 import (
-	//	"code.google.com/p/gocask"
-	"encoding/gob"
 	"fmt"
 	"github.com/conformal/btcwire"
 	"log"
@@ -10,16 +8,7 @@ import (
 
 var (
 	conf = Config{"btcfs", 0}
-	//	db, _      = gocask.NewGocask(".")
-	getheaders      = btcwire.NewMsgGetHeaders()
-	blockchain      = InitializeBlockChain()
-	blockheaderchan = make(chan *btcwire.BlockHeader)
 )
-
-func init() {
-	gob.Register(btcwire.BlockHeader{})
-	getheaders.AddBlockLocatorHash(&btcwire.GenesisMerkleRoot)
-}
 
 func main() {
 	addrs, err := FindPeers(1)
@@ -38,16 +27,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	//headerschan := make(chan btcwire.BlockHeader, 20)
+
+	getheaders := btcwire.NewMsgGetHeaders()
+	getheaders.AddBlockLocatorHash(&btcwire.GenesisMerkleRoot)
+
 	peer.Write(getheaders)
 
-	go func() {
-		err := SrvHeaders(blockheaderchan)
-		if err != nil {
-			log.Printf("SrvHeaders failed: %s", err)
-		}
-	}()
-
 	ProcessMessages(peer)
+
 }
 
 func ProcessMessages(n *BTCPeer) error {
@@ -64,33 +52,9 @@ func ProcessMessages(n *BTCPeer) error {
 
 func ProcessMessage(from *BTCPeer, msg string, data btcwire.Message) {
 	//log.Printf("ProcessMessage: %s %#v", msg, data)
-	//	defer db.Close()
 
 	switch msg {
-	case "headers":
-		hdrs := data.(*btcwire.MsgHeaders)
-		log.Printf("Received %d headers", len(hdrs.Headers))
-
-		for _, h := range hdrs.Headers {
-			blockheaderchan <- h
-			_, err := blockchain.AddBlock(h)
-			if err != nil {
-				log.Print(err)
-			}
-		}
-
-		//blockchain.Genesis.PrintSubtree(1)
-
-		log.Printf("Blockchain Head Depth: %d\n", blockchain.ChainHeadDepth)
-		log.Printf("Chain Head: %#v\n", blockchain.ChainHead.Hash.String())
-
-		getheaders := btcwire.NewMsgGetHeaders()
-
-		locator := blockchain.CreateLocator()
-		getheaders.BlockLocatorHashes = locator
-
-		from.Write(getheaders)
-
-	default:
+		case "headers":
+		default:
 	}
 }
