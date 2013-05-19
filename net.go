@@ -19,7 +19,7 @@ var (
 // Find up to n peers from a dns server.
 // return nil, err on error
 func FindPeers(n int) ([]string, error) {
-	
+
 	for _, rnd := range rand.Perm(len(dns)) {
 		addrs, err := net.LookupHost(dns[rnd])
 		if err != nil {
