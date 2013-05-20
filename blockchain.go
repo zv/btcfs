@@ -9,20 +9,21 @@ type BlockChain struct {
 	Last *Block
 	ChainHead *Block 
 	ChainHeadDepth int
-	NodePointers map[btcwire.Shahash] *Block 
+	NodePointers map[btcwire.ShaHash] *Block 
 }
 
 type Block struct {
 	Children []*Block
 	Parent *Block
-	MerkleRoot btcwire.Shahash
+	MerkleRoot btcwire.ShaHash
 	Height int
 }
 
 func InitializeBlockChain() *BlockChain {
-	block := Block{MerkleRoot: *btcwire.GenesisMerkleRoot}
-	bc.NodePointers = make(map[btcwire.Shahash] block)	
-	bc.NodePointers[block.MerkleRoot] = *block 
+	block := Block{MerkleRoot: btcwire.GenesisMerkleRoot}
+  bc := BlockChain{Last: &block, ChainHead: &block} 
+	bc.NodePointers = make(map[btcwire.ShaHash] *Block)	
+	bc.NodePointers[block.MerkleRoot] = &block 
 	return &bc	
 }
 
@@ -56,7 +57,11 @@ func (node *Block) LongestPath() int, *Block {
 func (chain *BlockChain) LongestPath() []*Block {
 	head   := chain.ChainHead
 	parent := head.Parent	
-	blocks := append(nil, head)
+
+  var blocks []*Block  
+
+	blocks = append(blocks, head)
+
 	for {
 		if parent == nil {
 			break	
@@ -67,19 +72,20 @@ func (chain *BlockChain) LongestPath() []*Block {
 	return blocks
 } 
 
-func (chain *BlockChain) CreateLocator() []*btcwire.Shahash {
+func (chain *BlockChain) CreateLocator() []btcwire.ShaHash {
 	longest_path := chain.LongestPath()
-	var locator []*Block
+	var locator []btcwire.ShaHash
+
 	for i, block := range longest_path {
 		if i > 10 {
-			locator := append(locator, block)
+			locator = append(locator, block.MerkleRoot)
 		} else {
 			break
 		}		
 	}			
 
-	if len(longest_path) > 10 {
-		return longest_path
+	if len(locator) < 10 {
+		return locator 
 	}
 
 	step := 1
@@ -89,10 +95,10 @@ func (chain *BlockChain) CreateLocator() []*btcwire.Shahash {
 			break			
 		} 
 		block := longest_path[step]
-		locator := append(locator, block)
+		locator = append(locator, block.MerkleRoot)
 		step = step * 2 
 	}
-	return longest_path
+	return locator 
 } 
 
 func (chain *BlockChain) AddBlock(header *btcwire.BlockHeader) (*Block, error) {
@@ -102,13 +108,15 @@ func (chain *BlockChain) AddBlock(header *btcwire.BlockHeader) (*Block, error) {
 		return nil, err 
 	} 
 	block := Block{Parent: parent, MerkleRoot: header.MerkleRoot}
-	chain.NodePointers[header.MerkleRoot] = block 
+	chain.NodePointers[block.MerkleRoot] = &block 
 
-	parent.Children = append(parent.Children, block)  
-	block.Height    = node.Height + 1
+	parent.Children = append(parent.Children, &block)  
+	block.Height    = parent.Height + 1
 
-	if chain.ChainHeadSize < node.Height {
-		chain.ChainHead = block 
+	if chain.ChainHeadDepth < block.Height {
+		chain.ChainHead = &block 
+		chain.ChainHeadDepth = block.Height 
+
 	}
 	return &block, nil
 }
