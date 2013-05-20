@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"github.com/conformal/btcwire"
-  //"encoding/binary"
-  //"bytes"
+  "strings"
 )
 
 type BlockChain struct {
 	Last *Block
+  Genesis *Block
 	ChainHead *Block 
 	ChainHeadDepth int
 	NodePointers map[btcwire.ShaHash] *Block 
@@ -25,7 +25,7 @@ type Block struct {
 
 func InitializeBlockChain() *BlockChain {
 	block := Block{Hash: btcwire.GenesisHash}
-  bc := BlockChain{Last: &block, ChainHead: &block} 
+  bc := BlockChain{Last: &block, ChainHead: &block, Genesis: &block} 
 	bc.NodePointers = make(map[btcwire.ShaHash] *Block)	
 	bc.NodePointers[btcwire.GenesisHash] = &block 
 	return &bc	
@@ -81,6 +81,8 @@ func (chain *BlockChain) CreateLocator() []*btcwire.ShaHash {
 	return locator 
 } 
 
+
+
 func (chain *BlockChain) AddBlock(header *btcwire.BlockHeader) (*Block, error) {
 
   header_sha, err := header.BlockSha(btcwire.ProtocolVersion)
@@ -112,5 +114,36 @@ func (chain *BlockChain) AddBlock(header *btcwire.BlockHeader) (*Block, error) {
 	return &block, nil
 }
 
+func (block *Block) PrintSubtree(level int) { 
+  parent := block.Parent
+  if parent == nil {
+    fmt.Println("*")
+  } else {
 
+      if (parent.Parent != nil && block != parent.Parent.Children[len(parent.Parent.Children)-1]) {
+        fmt.Println("|")
+      }
 
+      fmt.Printf("%s", strings.Repeat(string(' '), level - 1))
+      
+      if (parent != nil && block == parent.Children[len(parent.Children) - 1]) {
+        fmt.Println("+")
+      } else {
+        fmt.Println("|")
+      }
+      fmt.Println("---")
+      
+      if len(block.Children) > 0 {
+        fmt.Println("+")
+      } else {
+        fmt.Println(">")
+      }
+  }
+
+  fmt.Println("%s\n", block.Hash.String())
+
+  for _, c := range block.Children {
+    c.PrintSubtree(level + 1)
+  }
+
+}

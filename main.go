@@ -70,6 +70,7 @@ func ProcessMessage(from *BTCPeer, msg string, data btcwire.Message) {
 				}
 			}
 
+
       log.Printf("Blockchain Head Depth: %d\n", blockchain.ChainHeadDepth) 
       log.Printf("Chain Head: %#v\n", blockchain.ChainHead.Hash.String()) 
 			
