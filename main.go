@@ -79,7 +79,7 @@ func ProcessMessage(from *BTCPeer, msg string, data btcwire.Message) {
 			for _, h := range hdrs.Headers {
 				_, err := blockchain.AddBlock(h)
 				if err != nil {
-				//	log.Print(err)
+					log.Print(err)
 				}
 			}
 
