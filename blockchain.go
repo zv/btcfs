@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/conformal/btcwire"
+  "encoding/binary"
+  "bytes"
 )
 
 type BlockChain struct {
@@ -16,14 +18,16 @@ type Block struct {
 	Children []*Block
 	Parent *Block
 	MerkleRoot btcwire.ShaHash
+  Hash btcwire.ShaHash 
+  PrevBlock btcwire.ShaHash 
 	Height int
 }
 
 func InitializeBlockChain() *BlockChain {
-	block := Block{MerkleRoot: btcwire.GenesisMerkleRoot}
+	block := Block{MerkleRoot: btcwire.GenesisHash}
   bc := BlockChain{Last: &block, ChainHead: &block} 
 	bc.NodePointers = make(map[btcwire.ShaHash] *Block)	
-	bc.NodePointers[block.MerkleRoot] = &block 
+	bc.NodePointers[btcwire.GenesisHash] = &block 
 	return &bc	
 }
 
@@ -102,13 +106,29 @@ func (chain *BlockChain) CreateLocator() []btcwire.ShaHash {
 } 
 
 func (chain *BlockChain) AddBlock(header *btcwire.BlockHeader) (*Block, error) {
-	parent := chain.NodePointers[header.PrevBlock]
+
+	buf := new(bytes.Buffer)
+  binary.Write(buf, binary.LittleEndian, header.Version) 
+  binary.Write(buf, binary.LittleEndian, header.PrevBlock) 
+  binary.Write(buf, binary.LittleEndian, header.MerkleRoot) 
+  binary.Write(buf, binary.LittleEndian, header.Timestamp) 
+  binary.Write(buf, binary.LittleEndian, header.Bits) 
+  binary.Write(buf, binary.LittleEndian, header.Nonce) 
+  
+  header_hash := btcwire.DoubleSha256(buf.Bytes())
+  header_sha, _ := btcwire.NewShaHash(header_hash)
+  
+  fmt.Printf("header_sha: %s", header_sha.String())
+
+	parent := chain.NodePointers[*header_sha]
+
 	if parent == nil {
-		err := fmt.Errorf("No parent with Merkle root %s", header.PrevBlock.String())	
+		err := fmt.Errorf("No parent with Header Hash: %s", header_sha.String())	
 		return nil, err 
 	} 
-	block := Block{Parent: parent, MerkleRoot: header.MerkleRoot}
-	chain.NodePointers[block.MerkleRoot] = &block 
+
+	block := Block{Parent: parent, Hash: *header_sha, PrevBlock: header.PrevBlock}
+	chain.NodePointers[*header_sha] = &block 
 
 	parent.Children = append(parent.Children, &block)  
 	block.Height    = parent.Height + 1
