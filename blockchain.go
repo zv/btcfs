@@ -17,14 +17,14 @@ type BlockChain struct {
 type Block struct {
 	Children []*Block
 	Parent *Block
-	MerkleRoot btcwire.ShaHash
   Hash btcwire.ShaHash 
-  PrevBlock btcwire.ShaHash 
-	Height int
+  Header btcwire.BlockHeader
+  Transactions []btcwire.MsgTx
+	Depth int
 }
 
 func InitializeBlockChain() *BlockChain {
-	block := Block{MerkleRoot: btcwire.GenesisHash}
+	block := Block{Hash: btcwire.GenesisHash}
   bc := BlockChain{Last: &block, ChainHead: &block} 
 	bc.NodePointers = make(map[btcwire.ShaHash] *Block)	
 	bc.NodePointers[btcwire.GenesisHash] = &block 
@@ -97,15 +97,16 @@ func (chain *BlockChain) AddBlock(header *btcwire.BlockHeader) (*Block, error) {
 		return nil, err 
 	} 
 
-	block := Block{Parent: parent, Hash: header_sha, PrevBlock: header.PrevBlock}
+  transactions := make([]btcwire.MsgTx, header.TxnCount)
+	block := Block{Parent: parent, Hash: header_sha, Header: *header, Transactions: transactions}
 	chain.NodePointers[header_sha] = &block 
 
 	parent.Children = append(parent.Children, &block)  
-	block.Height    = parent.Height + 1
+	block.Depth    = parent.Depth + 1
 
-	if chain.ChainHeadDepth < block.Height {
+	if chain.ChainHeadDepth < block.Depth {
 		chain.ChainHead = &block 
-		chain.ChainHeadDepth = block.Height 
+		chain.ChainHeadDepth = block.Depth 
 
 	}
 	return &block, nil
