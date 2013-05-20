@@ -5,7 +5,7 @@ import (
 	"github.com/conformal/btcwire"
 	"code.google.com/p/gocask"
 	"log"
-	"bytes"
+	//"bytes"
 	"encoding/gob"
 )
 
@@ -79,16 +79,20 @@ func ProcessMessage(from *BTCPeer, msg string, data btcwire.Message) {
 			for _, h := range hdrs.Headers {
 				_, err := blockchain.AddBlock(h)
 				if err != nil {
-					log.Print(err)
+				//	log.Print(err)
 				}
 			}
+
+      log.Printf("%#v", blockchain) 
 			
 			locator := blockchain.CreateLocator()	
 			log.Printf("locator: %#v", locator)
 			getheaders := btcwire.NewMsgGetHeaders()
-			for _, l := locator {	 
-				getheaders.AddBlockLocatorHash(l)	
+
+			for _, l := range locator {	 
+				getheaders.AddBlockLocatorHash(&l)	
 			}
+
 			from.Write(getheaders)
 			
 			/*
