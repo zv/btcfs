@@ -5,7 +5,6 @@ import (
 	"github.com/conformal/btcwire"
 	"code.google.com/p/gocask"
 	"log"
-	//"bytes"
 	"encoding/gob"
 )
 
@@ -38,21 +37,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	//headerschan := make(chan btcwire.BlockHeader, 20)
-	
-
 	peer.Write(getheaders)
 
 	ProcessMessages(peer)
-
-	/*
-	iter := reader.Find(nil, nil)
-	"code.google.com/p/leveldb-go/leveldb/table"
-	for iter.Next() {
-		fmt.Printf("nonce: %q, val: %q\n", iter.Key(), iter.Value())
-	} 
-	iter.Close()
-	*/
 }
 
 func ProcessMessages(n *BTCPeer) error {
@@ -84,11 +71,11 @@ func ProcessMessage(from *BTCPeer, msg string, data btcwire.Message) {
 			}
 
       log.Printf("Blockchain Head Depth: %d\n", blockchain.ChainHeadDepth) 
+      log.Printf("Chain Head: %#v\n", blockchain.ChainHead.Hash.String()) 
 			
-			locator := blockchain.CreateLocator()	
-			log.Printf("locator: %#v", locator)
 			getheaders := btcwire.NewMsgGetHeaders()
 
+			locator := blockchain.CreateLocator()	
       getheaders.BlockLocatorHashes = locator
 
 			from.Write(getheaders)
