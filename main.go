@@ -83,54 +83,15 @@ func ProcessMessage(from *BTCPeer, msg string, data btcwire.Message) {
 				}
 			}
 
-      log.Printf("%#v", blockchain) 
+      log.Printf("Blockchain Head Depth: %d\n", blockchain.ChainHeadDepth) 
 			
 			locator := blockchain.CreateLocator()	
 			log.Printf("locator: %#v", locator)
 			getheaders := btcwire.NewMsgGetHeaders()
 
-			for _, l := range locator {	 
-				getheaders.AddBlockLocatorHash(&l)	
-			}
+      getheaders.BlockLocatorHashes = locator
 
 			from.Write(getheaders)
-			
-			/*
-			roots := make([]btcwire.ShaHash)	
-		
-			for _, h := range hdrs.Headers {
-				buf := bytes.Buffer{}
-				enc := gob.NewEncoder(&buf)
-				enc.Encode(*h)
-				val := buf.Bytes()
-				//buf.Reset()
-				//enc.Encode(h.Nonce)
-				//key := buf.Bytes()
-				//buf.Reset()
-				db.Put(h.MerkleRoot.String(), val)
-				getheaders.AddBlockLocatorHash(&h.MerkleRoot)
-			}
-
-			last_headers := hdrs.Headers[len(hdrs.Headers)-11:len(hdrs.Headers)-1]
-			//last := hdrs.Headers[0]
-			//getheaders := btcwire.NewMsgGetHeaders()
-			fmt.Printf("%s\n", last_headers[0].MerkleRoot.String())
-			for _, header := range last_headers{ 
-				getheaders.AddBlockLocatorHash(&header.MerkleRoot)
-				//fmt.Printf("hash %d: %s\n", i, header.MerkleRoot.String())
-			}
-			//fmt.Printf("%#v", getheaders)
-			from.Write(getheaders)
-			/*
-			buf := bytes.Buffer{}
-			enc := gob.NewEncoder(&buf)
-			enc.Encode(&last.Nonce)
-			nonce := buf.Bytes()	
-			db.Put(string("Hello"), []byte("World"))
-			test, _ := db.Get(string("Hello"))
-			fmt.Printf("%s\n", test)
-			fmt.Printf("%d Records in the DB\n", n)
-			*/
 			
 		default:
 	}

@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/conformal/btcwire"
-  "encoding/binary"
-  "bytes"
+  //"encoding/binary"
+  //"bytes"
 )
 
 type BlockChain struct {
@@ -58,6 +58,7 @@ func (node *Block) LongestPath() int, *Block {
 	return largest, most_distant_node	
 } 
 */
+
 func (chain *BlockChain) LongestPath() []*Block {
 	head   := chain.ChainHead
 	parent := head.Parent	
@@ -76,17 +77,19 @@ func (chain *BlockChain) LongestPath() []*Block {
 	return blocks
 } 
 
-func (chain *BlockChain) CreateLocator() []btcwire.ShaHash {
+func (chain *BlockChain) CreateLocator() []*btcwire.ShaHash {
 	longest_path := chain.LongestPath()
-	var locator []btcwire.ShaHash
+
+	var locator []*btcwire.ShaHash
 
 	for i, block := range longest_path {
-		if i > 10 {
-			locator = append(locator, block.MerkleRoot)
+		if i < 10 {
+			locator = append(locator, &block.Hash)
 		} else {
 			break
 		}		
 	}			
+
 
 	if len(locator) < 10 {
 		return locator 
@@ -99,36 +102,37 @@ func (chain *BlockChain) CreateLocator() []btcwire.ShaHash {
 			break			
 		} 
 		block := longest_path[step]
-		locator = append(locator, block.MerkleRoot)
+		locator = append(locator, &block.Hash)
 		step = step * 2 
 	}
+
 	return locator 
 } 
 
 func (chain *BlockChain) AddBlock(header *btcwire.BlockHeader) (*Block, error) {
 
-	buf := new(bytes.Buffer)
-  binary.Write(buf, binary.LittleEndian, header.Version) 
-  binary.Write(buf, binary.LittleEndian, header.PrevBlock) 
-  binary.Write(buf, binary.LittleEndian, header.MerkleRoot) 
-  binary.Write(buf, binary.LittleEndian, header.Timestamp) 
-  binary.Write(buf, binary.LittleEndian, header.Bits) 
-  binary.Write(buf, binary.LittleEndian, header.Nonce) 
-  
-  header_hash := btcwire.DoubleSha256(buf.Bytes())
-  header_sha, _ := btcwire.NewShaHash(header_hash)
-  
-  fmt.Printf("header_sha: %s", header_sha.String())
+  header_sha, err := header.BlockSha(btcwire.ProtocolVersion)
 
-	parent := chain.NodePointers[*header_sha]
+  if err != nil {
+		err := fmt.Errorf("Error building header blockhash: %s", err)	
+		return nil, err 
+  }
+
+  if header_sha == btcwire.GenesisHash {
+    fmt.Errorf("MATCHED GENESIS HASH AT\n")
+    fmt.Printf("%#v", header)
+  }
+
+  
+	parent := chain.NodePointers[header.PrevBlock]
 
 	if parent == nil {
-		err := fmt.Errorf("No parent with Header Hash: %s", header_sha.String())	
+		err := fmt.Errorf("No parent with Header Hash: %s", header.PrevBlock.String())	
 		return nil, err 
 	} 
 
-	block := Block{Parent: parent, Hash: *header_sha, PrevBlock: header.PrevBlock}
-	chain.NodePointers[*header_sha] = &block 
+	block := Block{Parent: parent, Hash: header_sha, PrevBlock: header.PrevBlock}
+	chain.NodePointers[header_sha] = &block 
 
 	parent.Children = append(parent.Children, &block)  
 	block.Height    = parent.Height + 1
