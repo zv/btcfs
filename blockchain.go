@@ -31,34 +31,6 @@ func InitializeBlockChain() *BlockChain {
 	return &bc	
 }
 
-/*
-func (node *Block) LongestPath() int, *Block {
-	var children_height map[*Block] int 
-
-	if len(node.Children) == 0 {
-		return 0
-	}	 
-
-	var path_lengths []int
-
-	for i, child := range subtree.Children {
-		child_path_length, _ := child.longest_path()
-		children_height[&child] = child.longest_path()
-	}
-
-	largest := 0
-	var most_distant_node *Block
-	for k, v := range children_height {
-		if v > largest {
-			largest := v 
-			most_distant_node = k
-		}
-	}	
-	
-	return largest, most_distant_node	
-} 
-*/
-
 func (chain *BlockChain) LongestPath() []*Block {
 	head   := chain.ChainHead
 	parent := head.Parent	
