@@ -118,12 +118,6 @@ func (chain *BlockChain) AddBlock(header *btcwire.BlockHeader) (*Block, error) {
 		return nil, err 
   }
 
-  if header_sha == btcwire.GenesisHash {
-    fmt.Errorf("MATCHED GENESIS HASH AT\n")
-    fmt.Printf("%#v", header)
-  }
-
-  
 	parent := chain.NodePointers[header.PrevBlock]
 
 	if parent == nil {
