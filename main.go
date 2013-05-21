@@ -1,18 +1,19 @@
 package main
 
 import (
+	//	"code.google.com/p/gocask"
+	"encoding/gob"
 	"fmt"
 	"github.com/conformal/btcwire"
-	"code.google.com/p/gocask"
 	"log"
-	"encoding/gob"
 )
 
 var (
 	conf = Config{"btcfs", 0}
-	db, _ = gocask.NewGocask(".")
-	getheaders = btcwire.NewMsgGetHeaders()
-	blockchain = InitializeBlockChain()  
+	//	db, _      = gocask.NewGocask(".")
+	getheaders      = btcwire.NewMsgGetHeaders()
+	blockchain      = InitializeBlockChain()
+	blockheaderchan = make(chan *btcwire.BlockHeader)
 )
 
 func init() {
@@ -39,6 +40,13 @@ func main() {
 
 	peer.Write(getheaders)
 
+	go func() {
+		err := SrvHeaders(blockheaderchan)
+		if err != nil {
+			log.Printf("SrvHeaders failed: %s", err)
+		}
+	}()
+
 	ProcessMessages(peer)
 }
 
@@ -56,31 +64,33 @@ func ProcessMessages(n *BTCPeer) error {
 
 func ProcessMessage(from *BTCPeer, msg string, data btcwire.Message) {
 	//log.Printf("ProcessMessage: %s %#v", msg, data)
-	defer db.Close()
+	//	defer db.Close()
 
 	switch msg {
-		case "headers":
-			hdrs := data.(*btcwire.MsgHeaders)
-			log.Printf("Received %d headers", len(hdrs.Headers))
+	case "headers":
+		hdrs := data.(*btcwire.MsgHeaders)
+		log.Printf("Received %d headers", len(hdrs.Headers))
 
-			for _, h := range hdrs.Headers {
-				_, err := blockchain.AddBlock(h)
-				if err != nil {
-					log.Print(err)
-				}
+		for _, h := range hdrs.Headers {
+			blockheaderchan <- h
+			_, err := blockchain.AddBlock(h)
+			if err != nil {
+				log.Print(err)
 			}
+		}
 
+		//blockchain.Genesis.PrintSubtree(1)
 
-      log.Printf("Blockchain Head Depth: %d\n", blockchain.ChainHeadDepth) 
-      log.Printf("Chain Head: %#v\n", blockchain.ChainHead.Hash.String()) 
-			
-			getheaders := btcwire.NewMsgGetHeaders()
+		log.Printf("Blockchain Head Depth: %d\n", blockchain.ChainHeadDepth)
+		log.Printf("Chain Head: %#v\n", blockchain.ChainHead.Hash.String())
 
-			locator := blockchain.CreateLocator()	
-      getheaders.BlockLocatorHashes = locator
+		getheaders := btcwire.NewMsgGetHeaders()
 
-			from.Write(getheaders)
-			
-		default:
+		locator := blockchain.CreateLocator()
+		getheaders.BlockLocatorHashes = locator
+
+		from.Write(getheaders)
+
+	default:
 	}
 }

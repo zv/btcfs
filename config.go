@@ -1,7 +1,7 @@
 package main
 
 type Config struct {
-	Version string
+	Version   string
 	LastBlock int32
 }
 

@@ -15,13 +15,13 @@ const (
 
 type BTCPeer struct {
 	Host, Port string
-	Msgs chan btcwire.Message
-	Quit chan bool
+	Msgs       chan btcwire.Message
+	Quit       chan bool
 
 	Net btcwire.BitcoinNet
 	Ver uint32
 
-	con net.Conn
+	con  net.Conn
 	conf Config
 }
 
@@ -74,7 +74,7 @@ version:
 		case *btcwire.MsgVersion:
 			msgver := in.(*btcwire.MsgVersion)
 			if msgver.ProtocolVersion < MIN_PROTO_VERSION {
-		return fmt.Errorf("peer protocol is %d, need >%d", msgver.ProtocolVersion, MIN_PROTO_VERSION)
+				return fmt.Errorf("peer protocol is %d, need >%d", msgver.ProtocolVersion, MIN_PROTO_VERSION)
 			}
 			// Send verack
 			ack := btcwire.NewMsgVerAck()
