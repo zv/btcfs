@@ -85,16 +85,15 @@ func (filter *BloomFilter) BitcoinMurmur(key []byte, seed_int uint32) uint32 {
 	}
 
 	k = 0
-	tailIndex := nblocks * 4
 	switch length & 3 {
 	case 3:
-		k ^= uint32(key[tailIndex+2]) << 16
+		k ^= uint32(key[length+2]) << 16
 		fallthrough
 	case 2:
-		k ^= uint32(key[tailIndex+1]) << 8
+		k ^= uint32(key[length+1]) << 8
 		fallthrough
 	case 1:
-		k ^= uint32(key[tailIndex])
+		k ^= uint32(key[length])
 		k *= c1
 		k = (k << r2) | (k >> (32 - r1))
 		k *= c2
