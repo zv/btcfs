@@ -11,7 +11,7 @@ import (
 
 var (
 	conf = Config{"btcfs", 0}
-	//	db, _      = gocask.NewGocask(".")
+	//	db, _           = gocask.NewGocask(".")
 	getheaders      = btcwire.NewMsgGetHeaders()
 	blockchain      = InitializeBlockChain()
 	blockheaderchan = make(chan *btcwire.BlockHeader)
@@ -23,6 +23,8 @@ func init() {
 }
 
 func main() {
+	//defer db.Close()
+
 	addrs, err := FindPeers(10)
 	if err != nil {
 		fmt.Println(err)
@@ -51,16 +53,16 @@ func main() {
 					log.Printf("SrvHeaders failed: %s", err)
 				}
 			}()
-			vchan <-  true
+			vchan <- true
 
 		}()
-		
+
 		select {
-			case <- vchan:  
-			case <- time.After(5*time.Second):
-				continue	
-		} 
-		
+		case <-vchan:
+		case <-time.After(5 * time.Second):
+			continue
+		}
+
 		ProcessMessages(peer)
 	}
 }
@@ -79,7 +81,6 @@ func ProcessMessages(n *BTCPeer) error {
 
 func ProcessMessage(from *BTCPeer, msg string, data btcwire.Message) {
 	//log.Printf("ProcessMessage: %s %#v", msg, data)
-	//	defer db.Close()
 
 	switch msg {
 	case "headers":
@@ -94,7 +95,7 @@ func ProcessMessage(from *BTCPeer, msg string, data btcwire.Message) {
 			}
 		}
 
-		//blockchain.Genesis.PrintSubtree(1)
+		// blockchain.Genesis.PrintSubtree(1)
 
 		log.Printf("Blockchain Head Depth: %d\n", blockchain.ChainHeadDepth)
 		log.Printf("Chain Head: %#v\n", blockchain.ChainHead.Hash.String())

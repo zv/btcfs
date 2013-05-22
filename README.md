@@ -1,5 +1,3 @@
-
-
 to run:
 
     btcfs > btcfs.log 2>&1

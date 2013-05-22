@@ -96,8 +96,7 @@ func (chain *BlockChain) AddBlock(header *btcwire.BlockHeader) (*Block, error) {
 		return nil, err
 	}
 
-	transactions := make([]btcwire.MsgTx, header.TxnCount)
-	block := Block{Parent: parent, Hash: header_sha, Header: *header, Transactions: transactions}
+	block := Block{Parent: parent, Hash: header_sha, Header: *header}
 	chain.NodePointers[header_sha] = &block
 
 	parent.Children = append(parent.Children, &block)

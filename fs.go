@@ -61,7 +61,7 @@ func SrvHeaders(headers chan *btcwire.BlockHeader) error {
 	}()
 
 	s = srv.NewFileSrv(root)
-	// s.Dotu = true
+	//s.Dotu = true
 	//s.Debuglevel = 1
 	s.Start(s)
 	err = s.StartNetListener("tcp", ":5640")
