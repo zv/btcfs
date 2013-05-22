@@ -108,3 +108,36 @@ func (filter *BloomFilter) BitcoinMurmur(key []byte, seed_int uint32) uint32 {
 
 	return hash
 }
+
+
+// Insert a new block key
+func (filter *BloomFilter) Insert(key []byte) {
+
+  if (len(filter.Vector) == 1 && filter.Vector[0] == 0xff) {
+      return
+  }
+
+  for i := uint32(0); i < filter.nHashFuncs; i++ {
+    indices := filter.BitcoinMurmur(key, i)
+
+    // Sets the bit index of our Bloom vector
+    filter.Vector[indices >> 3] |= bloom_mask[7 & indices]
+  }
+  return
+}
+
+// Check if our bloom filter contains a key
+func (filter *BloomFilter) Contains(key []byte) bool {
+  if len(filter.Vector) == 1 && key[0] == 0xff {
+      return true
+  }
+  for i := uint32(0); i < filter.nHashFuncs; i++ {
+    indices := filter.BitcoinMurmur(key, i)
+
+    // checks the bit index of our Bloom vector
+    if ((filter.Vector[indices >> 3] & bloom_mask[7 & indices]) != 0) {
+      return false
+    }
+  }
+  return true
+}
