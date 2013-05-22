@@ -29,25 +29,25 @@ type BloomFilter struct {
 // One is the size of the filter in bytes (FilterSize).
 // The other is the number of hash functions to use, taking the probability distribution of the bitvector (DeriveHashFuncN).
 
-
-//The number of hash functions required is given by S * 8 / N * log(2).
-func (msg *MsgGetBlocks) DeriveHashFuncN(s int) {
-	n := &msg.HashFuncsN
-	return (s * 8) / (n * log(2))
+//The number of hash functions required is given by S * 8 / N * math.Log(2).
+func (filter *BloomFilter) DeriveHashFunctionsN(size float64) int {
+	n := float64(filter.nHashFuncs)
+  hash_functions := (size * 8) / (n * math.Log(2))
+	return int(math.Min(hash_functions, float64(MaxHashFunctions)))
 }
 
+// IdealFilterSize gives the ideal bloom filter size given a probability distribution p between 1.0 "match everything" and 0  (
 // P represents the probability of a false positive, where 1.0 is "match everything" and zero is unachievable.
-func (msg *MsgGetBlocks) DeriveFilterSize(p int) {
-	n := &msg.HashFuncsN
+func (filter *BloomFilter) IdealFilterSize(p float64) int {
+	n := float64(filter.nHashFuncs)
 
 	//The ideal size S of the filter in bytes is given by (-1 / pow(math.Log(2), 2) * N * log(P)) / 8
 	// The MaxFilterSize a filter of 20,000 items with false positive
 	// rate of < 0.1% or 10,000 items and a false positive rate of < 0.0001%
-	if s > 32000 {
-		return 32000
-	}
-
-	return s
+  // which is more than enough
+	size := -1 / (math.Exp2(math.Ln2) * n * math.Log(p))
+  s := int(math.Min(size / 8, float64(MaxFilterSize)))
+  return s
 }
 
 // Implementation of wikipedia Murmur versoin 3 32 bit hashing,
