@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/conformal/btcwire"
 	"log"
+	"time"
 )
 
 var (
@@ -22,32 +23,46 @@ func init() {
 }
 
 func main() {
-	addrs, err := FindPeers(1)
+	addrs, err := FindPeers(10)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	fmt.Println("haters gonna hate")
+	vchan := make(chan bool)
 
-	peer := NewBTCPeer(addrs[0], btcwire.MainPort, conf)
+	for _, addr := range addrs {
+		peer := NewBTCPeer(addr, btcwire.MainPort, conf)
+		go func() {
+			if err := peer.Connect(); err != nil {
+				log.Fatal(err)
+			}
+			if err := peer.DoVersion(); err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println("haters gonna hate")
 
-	if err := peer.Connect(); err != nil {
-		log.Fatal(err)
+			peer.Write(getheaders)
+			fmt.Println("haters gonna hate")
+
+			go func() {
+				err := SrvHeaders(blockheaderchan)
+				if err != nil {
+					log.Printf("SrvHeaders failed: %s", err)
+				}
+			}()
+			vchan <-  true
+
+		}()
+		
+		select {
+			case <- vchan:  
+			case <- time.After(5*time.Second):
+				continue	
+		} 
+		
+		ProcessMessages(peer)
 	}
-
-	if err := peer.DoVersion(); err != nil {
-		log.Fatal(err)
-	}
-
-	peer.Write(getheaders)
-
-	go func() {
-		err := SrvHeaders(blockheaderchan)
-		if err != nil {
-			log.Printf("SrvHeaders failed: %s", err)
-		}
-	}()
-
-	ProcessMessages(peer)
 }
 
 func ProcessMessages(n *BTCPeer) error {
