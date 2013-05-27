@@ -13,7 +13,7 @@ var (
 	conf = Config{"btcfs", 0}
 	//	db, _           = gocask.NewGocask(".")
 	getheaders      = btcwire.NewMsgGetHeaders()
-	blockchain      = InitializeBlockChain()
+	blockchain, err = InitializeBlockChain()
 	blockheaderchan = make(chan *btcwire.BlockHeader)
 )
 
@@ -89,7 +89,7 @@ func ProcessMessage(from *BTCPeer, msg string, data btcwire.Message) {
 
 		for _, h := range hdrs.Headers {
 			blockheaderchan <- h
-			_, err := blockchain.AddBlock(h)
+			_, err := blockchain.InitializeBlock(h)
 			if err != nil {
 				log.Print(err)
 			}
@@ -98,7 +98,7 @@ func ProcessMessage(from *BTCPeer, msg string, data btcwire.Message) {
 		// blockchain.Genesis.PrintSubtree(1)
 
 		log.Printf("Blockchain Head Depth: %d\n", blockchain.ChainHeadDepth)
-		log.Printf("Chain Head: %#v\n", blockchain.ChainHead.Hash.String())
+		log.Printf("Chain Head: %#v\n", blockchain.ChainHead.String())
 
 		getheaders := btcwire.NewMsgGetHeaders()
 
