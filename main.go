@@ -7,24 +7,35 @@ import (
 	"github.com/conformal/btcwire"
 	"log"
 	"time"
+  "os"
+  "os/signal"
 )
 
 var (
 	conf = Config{"btcfs", 0}
 	//	db, _           = gocask.NewGocask(".")
 	getheaders      = btcwire.NewMsgGetHeaders()
-	blockchain, err = InitializeBlockChain()
+	blockchain, dberr = InitializeBlockChain()
 	blockheaderchan = make(chan *btcwire.BlockHeader)
 )
 
 func init() {
 	gob.Register(btcwire.BlockHeader{})
 	getheaders.AddBlockLocatorHash(&btcwire.GenesisMerkleRoot)
+
+  c := make(chan os.Signal, 1)
+  signal.Notify(c, os.Interrupt)
+  go func(){
+      for sig := range c {
+        blockchain.Database.Close()
+        fmt.Println("Closed Database\n")
+        fmt.Println(sig)
+        return
+      }
+  }()
 }
 
 func main() {
-	//defer db.Close()
-
 	addrs, err := FindPeers(10)
 	if err != nil {
 		fmt.Println(err)
